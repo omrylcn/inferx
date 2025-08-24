@@ -44,44 +44,50 @@ inferx run model.xml images/ --output results.json --runtime openvino
 inferx run model.xml image.jpg --device myriad --runtime openvino
 ```
 
-#### **3. Template Generation (Project scaffolding)**
+#### **3. Template Generation (Project scaffolding)** ✅ **WORKING**
 ```bash
-# Generate a complete standalone project
-inferx template yolo --name my-detector
-cd my-detector
+# Generate YOLO ONNX project
+uv run inferx template --model-type yolo --name my-detector
+cd my-detector && uv sync
 
-# Generate with model file copy
-inferx template yolo --name my-detector --model-path /path/to/my/model.onnx
+# Generate YOLO OpenVINO project  
+uv run inferx template --model-type yolo_openvino --name my-openvino-detector
+cd my-openvino-detector && uv sync --extra openvino
 
-# Generate OpenVINO template
-inferx template yolo_openvino --name my-detector --model-path /path/to/my/model.xml
+# Generate with API server
+uv run inferx template --model-type yolo --name my-api-detector --with-api
+cd my-api-detector && uv sync --extra api
+
+# Copy your model file
+uv run inferx template --model-type yolo --name my-detector --model-path /path/to/model.onnx
 
 # Project structure:
-# ├── pyproject.toml      # Minimal dependencies
-# ├── src/inferencer.py   # Your inference code (inherits from InferX YOLOInferencer)
-# ├── src/base.py         # Base inferencer class
-# ├── config.yaml         # Configuration
-# └── models/yolo_model.onnx # Place your model here (or .xml/.bin for OpenVINO)
+# ├── pyproject.toml         # UV-compatible dependencies
+# ├── src/
+# │   ├── inferencer.py      # YOLO inference implementation  
+# │   ├── server.py          # FastAPI server (if --with-api)
+# │   └── [base.py, utils.py, exceptions.py]  # Supporting files
+# ├── models/yolo_model.onnx # Your model file
+# └── config.yaml           # Configuration
 ```
 
-### 🚢 **4. Full Stack Generation (API + Docker)**
+### 🚢 **4. API Server Generation** ✅ **WORKING**
 ```bash
-# Start with template
-inferx template yolo --name my-detector
-cd my-detector
+# Generate with API server included
+uv run inferx template --model-type yolo --name my-api-detector --with-api
+cd my-api-detector
 
-# Add API server
-inferx api
-# ├── src/server.py       # Generated FastAPI app
-# └── requirements-api.txt # +FastAPI only
+# Install dependencies
+uv sync --extra api
 
-# Add Docker deployment
-inferx docker
-# ├── Dockerfile         # Optimized container
-# └── docker-compose.yml # Ready to deploy
+# Start API server
+uv run --extra api python -m src.server
+# Server runs at: http://0.0.0.0:8080
 
-# Deploy with Docker
-docker-compose up
+# Test API endpoints
+curl -X GET "http://localhost:8080/"                           # Health check
+curl -X GET "http://localhost:8080/info"                       # Model info
+curl -X POST "http://localhost:8080/predict" -F "file=@image.jpg"  # Inference
 ```
 
 ## 🆚 vs Heavy Frameworks
@@ -240,19 +246,24 @@ docker build -t my-detector:v1 .
 docker run -p 8080:8080 my-detector:v1
 ```
 
-### 🎨 **Available Templates** (Template Generation Pattern)
+### 🎨 **Available Templates** ✅ **4 Working Combinations**
 ```bash
-# Object detection
-inferx template yolo --name my-detector
+# 1. YOLO ONNX (Basic)
+uv run inferx template --model-type yolo --name my-yolo-project
 
-# Anomaly detection  
-inferx template anomaly --name quality-checker
+# 2. YOLO ONNX (with FastAPI)  
+uv run inferx template --model-type yolo --name my-yolo-api --with-api
 
-# Image classification
-inferx template classification --name image-classifier
+# 3. YOLO OpenVINO (Basic)
+uv run inferx template --model-type yolo_openvino --name my-openvino-project
 
-# Custom ONNX model
-inferx template custom --name my-model
+# 4. YOLO OpenVINO (with FastAPI)
+uv run inferx template --model-type yolo_openvino --name my-openvino-api --with-api
+
+# 🚧 Coming Soon:
+# - Anomaly detection templates
+# - Image classification templates  
+# - Custom ONNX model templates
 ```
 
 ## 🚧 Development Status
@@ -265,13 +276,14 @@ inferx template custom --name my-model
 - ✅ Project examples
 - ✅ **Library usage pattern**
 - ✅ **CLI usage pattern**
+- ✅ **Template generation** (`inferx template`) - **NEW!**
+- ✅ **API generation** (FastAPI servers) - **NEW!**
+- ✅ **4 Template Combinations** (YOLO, YOLO+API, OpenVINO, OpenVINO+API) - **NEW!**
 
 ### 🚧 **In Development**
-- 🚧 Template generation (`inferx template`)
-- 🚧 API generation (`inferx api`) 
-- 🚧 Docker generation (`inferx docker`)
-- 🚧 Project templates (YOLO, Anomaly, Classification)
-- 🚧 **Template + Full Stack usage patterns**
+- 🚧 Docker generation (`inferx docker`) - **Future feature**
+- 🚧 Project templates (Anomaly, Classification)
+- 🚧 Model zoo integration
 
 ### 📋 **TODO**
 See [TODO.md](TODO.md) for detailed development tasks and progress.

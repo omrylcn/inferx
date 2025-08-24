@@ -12,11 +12,8 @@ import json
 import sys
 import os
 
-# Add parent directory to path for imports when run as module
-sys.path.insert(0, str(Path(__file__).parent))
-
 # Local imports
-from .inferencer import Inferencer
+from inferencer import Inferencer
 
 # Initialize FastAPI app
 app = FastAPI(

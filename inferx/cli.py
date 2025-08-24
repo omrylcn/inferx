@@ -246,13 +246,10 @@ def init(ctx: click.Context, template: str, global_config: bool) -> None:
 @cli.command()
 @click.option("--model-type", required=True, type=click.Choice(["yolo", "yolo_openvino"]), help="Model type for template")
 @click.option("--name", required=True, help="Project name")
-@click.option("--device", type=click.Choice(["cpu", "gpu", "auto"]), default="auto", help="Device to run inference on")
-@click.option("--runtime", type=click.Choice(["onnx", "openvino", "auto"]), default="auto", help="Runtime engine to use")
 @click.option("--with-api", "with_api", is_flag=True, help="Add FastAPI server to template")
-@click.option("--with-docker", "with_docker", is_flag=True, help="Add Docker container to template")
 @click.option("--config-path", type=click.Path(exists=True), help="Custom configuration file path")
 @click.option("--model-path", type=click.Path(exists=True), help="Path to model file to copy into template")
-def template(model_type: str, name: str, device: str, runtime: str, with_api: bool, with_docker: bool, config_path: Optional[str], model_path: Optional[str]) -> None:
+def template(model_type: str, name: str, with_api: bool, config_path: Optional[str], model_path: Optional[str]) -> None:
     """Generate inference project template with optional API and Docker layers"""
     try:
         # Lazy import to avoid dependency issues
@@ -264,8 +261,7 @@ def template(model_type: str, name: str, device: str, runtime: str, with_api: bo
         project_path = generator.create_template(
             model_type, 
             name, 
-            with_api=with_api, 
-            with_docker=with_docker
+            with_api=with_api
         )
         
         # Copy model file if provided
@@ -275,8 +271,7 @@ def template(model_type: str, name: str, device: str, runtime: str, with_api: bo
         click.echo(f"✅ Generated {model_type} project: {name}")
         if with_api:
             click.echo("   🌐 API server added")
-        if with_docker:
-            click.echo("   🐳 Docker container added")
+            click.echo("   📖 Usage: uv run --extra api python -m src.server")
         if model_path:
             click.echo(f"   📦 Model copied from: {model_path}")
             

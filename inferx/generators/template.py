@@ -14,7 +14,7 @@ class TemplateGenerator:
         self.templates_dir = self.inferx_root / "generators" / "templates"
         self.inferencers_dir = self.inferx_root / "inferencers"
     
-    def create_template(self, model_type: str, project_name: str, with_api: bool = False, with_docker: bool = False):
+    def create_template(self, model_type: str, project_name: str, with_api: bool = False):
         """Create a new template project"""
         project_path = Path(project_name).resolve()
         
@@ -24,28 +24,12 @@ class TemplateGenerator:
         # Copy base template files
         self._copy_base_template(model_type, project_path)
         
-        # Copy Docker files if requested
-        if with_docker:
-            self._copy_docker_files(project_path)
-        
         # Copy API files if requested
         if with_api:
             self._copy_api_files(project_path)
         
-        # Copy sample data if available
-        self._copy_sample_data(project_path)
-        
         # Update README with project-specific information
-        self._update_readme(project_path, model_type, with_api, with_docker)
-        
-        print(f"✅ Created {model_type} template: {project_name}")
-        print(f"✅ Generated {model_type} project: {project_name}")
-        if with_api:
-            print("   🌐 API server added")
-            print("   To run the server: uv run --extra api python -m src.server")
-            print("   API docs available at: http://localhost:8080/docs")
-        if with_docker:
-            print("   🐳 Docker container added")
+        self._update_readme(project_path, model_type, with_api)
         
         return project_path
     
@@ -61,7 +45,7 @@ class TemplateGenerator:
         # Copy all files from template directory except src directory and Docker files
         if template_src.exists():
             for item in template_src.iterdir():
-                # Skip src directory and Docker files (they will be copied only when needed)
+                # Skip src directory and Docker files (future feature)
                 if item.name in ["src", "Dockerfile", "docker-compose.yml", ".dockerignore"]:
                     continue
                     
@@ -91,9 +75,8 @@ class TemplateGenerator:
         # Update config.yaml with model-specific settings
         self._update_config_for_model_type(model_type, project_path)
         
-        # Add OpenVINO dependencies if needed
-        if model_type == "yolo_openvino":
-            self._update_pyproject_for_openvino(project_path)
+        # Update pyproject.toml with project name and dependencies
+        self._update_pyproject(project_path, project_path.name, model_type)
         
         # Create inferencer.py based on model type
         self._create_inferencer_py(model_type, src_path)
@@ -157,6 +140,27 @@ class TemplateGenerator:
             (models_path / "model.onnx").write_text("# Place your model file here")
         
         config_file.write_text(config_content)
+    
+    def _update_pyproject(self, project_path: Path, project_name: str, model_type: str):
+        """Update pyproject.toml with project name and model-specific dependencies"""
+        pyproject_file = project_path / "pyproject.toml"
+        if not pyproject_file.exists():
+            return
+        
+        content = pyproject_file.read_text()
+        
+        # Replace project name
+        content = content.replace("{PROJECT_NAME}", project_name)
+        
+        # Add openvino to main dependencies if it's an OpenVINO model
+        if model_type == "yolo_openvino":
+            # Move openvino from optional to main dependencies
+            content = content.replace(
+                'dependencies = [\n    "onnxruntime>=1.16.0",\n    "numpy>=1.24.0", \n    "opencv-python-headless>=4.8.0",\n    "pyyaml>=6.0",\n]',
+                'dependencies = [\n    "onnxruntime>=1.16.0",\n    "numpy>=1.24.0", \n    "opencv-python-headless>=4.8.0",\n    "pyyaml>=6.0",\n    "openvino>=2023.3.0",\n]'
+            )
+        
+        pyproject_file.write_text(content)
     
     def _update_pyproject_for_openvino(self, project_path: Path):
         """Update pyproject.toml to include OpenVINO dependencies"""
@@ -262,15 +266,23 @@ class TemplateGenerator:
             
         if source_file.exists():
             content = source_file.read_text()
-            # Fix import paths to relative imports
+            # Fix import paths to absolute imports (template projects are not packages)
             content = content.replace("from ..utils import ImageProcessor", 
-                                    "from .utils import ImageProcessor")
+                                    "from utils import ImageProcessor")
+            content = content.replace("from .utils import ImageProcessor", 
+                                    "from utils import ImageProcessor")
             content = content.replace("from ..exceptions import (", 
-                                    "from .exceptions import (")
+                                    "from exceptions import (")
+            content = content.replace("from .exceptions import (", 
+                                    "from exceptions import (")
             content = content.replace("from .base import BaseInferencer", 
-                                    "from .base import BaseInferencer")
+                                    "from base import BaseInferencer")
             content = content.replace("from ..exceptions import ModelError, ErrorCode", 
-                                    "from .exceptions import ModelError, ErrorCode")
+                                    "from exceptions import ModelError, ErrorCode")
+            content = content.replace("from .exceptions import ModelError, ErrorCode", 
+                                    "from exceptions import ModelError, ErrorCode")
+            content = content.replace("from .yolo_base import BaseYOLOInferencer", 
+                                    "from yolo_base import BaseYOLOInferencer")
             (src_path / filename).write_text(content)
         else:
             print(f"DEBUG: Source file {source_file} not found")
@@ -417,7 +429,7 @@ api = [
                     dst_file = data_dst / item.name
                     shutil.copy2(item, dst_file)
     
-    def _update_readme(self, project_path: Path, model_type: str, with_api: bool, with_docker: bool):
+    def _update_readme(self, project_path: Path, model_type: str, with_api: bool):
         """Update README.md with project-specific information"""
         readme_file = project_path / "README.md"
         if not readme_file.exists():
@@ -432,12 +444,9 @@ api = [
         )
         
         # Add information about optional features
-        if with_api or with_docker:
+        if with_api:
             features_section = "\n## 🚀 Project Features\n\n"
-            if with_api:
-                features_section += "- **FastAPI Server** - REST API for inference\n"
-            if with_docker:
-                features_section += "- **Docker Container** - Containerized deployment\n"
+            features_section += "- **FastAPI Server** - REST API for inference\n"
             
             # Insert after the first paragraph
             lines = content.split('\n')

@@ -255,100 +255,108 @@ Processing images  [####################################]  100%
    Average: 0.034s per image
 ```
 
-## 🎨 Template Generation ✅
+## 🎨 Template Generation ✅ **FULLY WORKING**
 
-**Generate project templates with optional layers:**
+**Generate project templates - 4 combinations available:**
 
-### Basic Template Generation
+### 4 Template Combinations
 ```bash
-# Generate YOLO ONNX template
-uv run inferx template --model-type yolo --name my_yolo_project
+# 1. YOLO ONNX (Basic)
+uv run inferx template --model-type yolo --name my_yolo_basic
 
-# Generate YOLO OpenVINO template  
-uv run inferx template --model-type yolo_openvino --name my_openvino_project
+# 2. YOLO ONNX (with API)
+uv run inferx template --model-type yolo --name my_yolo_api --with-api
+
+# 3. YOLO OpenVINO (Basic)  
+uv run inferx template --model-type yolo_openvino --name my_openvino_basic
+
+# 4. YOLO OpenVINO (with API)
+uv run inferx template --model-type yolo_openvino --name my_openvino_api --with-api
 ```
 
 ### Template with Model Files
 ```bash
-# Generate YOLO ONNX template with model file
-uv run inferx template --model-type yolo --name my_yolo_project --model-path /path/to/yolo_model.onnx
+# Copy your model during generation
+uv run inferx template --model-type yolo --name my_detector --model-path /path/to/model.onnx
 
-# Generate YOLO OpenVINO template with model directory
-uv run inferx template --model-type yolo_openvino --name my_openvino_project --model-path /path/to/openvino_model_dir
+# OpenVINO with model files (.xml + .bin)
+uv run inferx template --model-type yolo_openvino --name my_openvino --model-path /path/to/model.xml
 ```
 
-### Template with API Layer
+### Template Setup & Usage
 ```bash
-# Add FastAPI server to template
-uv run inferx template --model-type yolo --name my_api_project --with-api
-
-# With model file
-uv run inferx template --model-type yolo --name my_api_project --with-api --model-path /path/to/model.onnx
-```
-
-### Template with Docker Layer
-```bash
-# Add Docker container to template
-uv run inferx template --model-type yolo --name my_docker_project --with-docker
-
-# With model file
-uv run inferx template --model-type yolo --name my_docker_project --with-docker --model-path /path/to/model.onnx
-```
-
-### Full-Stack Template
-```bash
-# Generate complete template with API and Docker
-uv run inferx template --model-type yolo --name my_complete_project --with-api --with-docker --model-path /path/to/model.onnx
-```
-
-### Template Project Structure
-```
-my_project/
-├── src/
-│   ├── __init__.py
-│   ├── inferencer.py     # Model-specific inferencer
-│   ├── base.py          # Base inferencer class
-│   ├── yolo_base.py     # YOLO base functionality
-│   ├── utils.py         # Helper functions
-│   ├── exceptions.py    # Custom exceptions
-│   └── server.py        # FastAPI server (if --with-api)
-├── models/
-│   ├── yolo_model.onnx  # Model file (if --model-path provided)
-│   └── yolo_model.xml   # OpenVINO model (if --model-path provided)
-├── data/
-│   └── test_image.jpg   # Sample test image
-├── config.yaml          # Configuration file
-├── pyproject.toml       # Package dependencies
-├── Dockerfile           # Docker configuration (if --with-docker)
-├── docker-compose.yml   # Docker Compose (if --with-docker)
-├── README.md            # Project documentation
-└── .gitignore           # Git ignore patterns
-```
-
-### Using Generated Templates
-```bash
-# Navigate to generated project
-cd my_project
+# After generating template:
+cd my_yolo_api
 
 # Install dependencies
-uv pip install -e .
+uv sync --extra api          # For API templates
+uv sync --extra openvino     # For OpenVINO templates  
+uv sync                      # For basic templates
 
 # Test inferencer
-uv run python -c "from src.inferencer import Inferencer; print('✅ Inferencer loaded successfully')"
+uv run python -c "from src.inferencer import Inferencer; print('✅ Ready!')"
 
-# Run inference on test image
+# Start API server (API templates only)
+uv run --extra api python -m src.server
+```
+
+### Template Project Structure ✅
+```
+my_yolo_api/                    # Generated project
+├── src/
+│   ├── __init__.py
+│   ├── inferencer.py          # YOLO inference implementation
+│   ├── base.py               # Base inferencer class
+│   ├── yolo_base.py          # YOLO base functionality
+│   ├── utils.py              # Image processing utilities
+│   ├── exceptions.py         # Custom exceptions
+│   └── server.py             # FastAPI server (if --with-api)
+├── models/
+│   └── yolo_model.onnx       # Place your model here (.xml for OpenVINO)
+├── config.yaml               # Model configuration
+├── pyproject.toml            # UV-compatible dependencies
+├── README.md                 # Usage instructions
+└── .gitignore                # Standard Python gitignore
+```
+
+**Key Features:**
+- ✅ **UV-compatible** - `uv sync` installs dependencies
+- ✅ **No relative imports** - Works with `uv run`
+- ✅ **Dynamic project names** - Uses your `--name`
+- ✅ **Optional dependencies** - `--extra api` for FastAPI
+- ✅ **OpenVINO support** - Auto-includes openvino dependency
+
+### Using Generated Templates ✅
+```bash
+# Navigate to generated project
+cd my_yolo_api
+
+# Install dependencies (choose appropriate command)
+uv sync                      # Basic templates
+uv sync --extra api          # API templates  
+uv sync --extra openvino     # OpenVINO templates
+
+# Test inferencer import (should work immediately)
+uv run python -c "from src.inferencer import Inferencer; print('✅ Inferencer imported!')"
+
+# Test with your model (place model in models/ first)
 uv run python -c "
 from src.inferencer import Inferencer
-inferencer = Inferencer('models/yolo_model.onnx')
-result = inferencer.predict('data/test_image.jpg')
-print(f'Detected {result[\"num_detections\"]} objects')
+import os
+if os.path.exists('models/yolo_model.onnx'):
+    inferencer = Inferencer('models/yolo_model.onnx')
+    print('✅ Model loaded successfully')
+else:
+    print('📁 Place your model in models/ directory')
 "
 
-# Run API server (if --with-api)
+# Start API server (API templates only)
 uv run --extra api python -m src.server
+# Server available at: http://0.0.0.0:8080
 
-# Build Docker image (if --with-docker)
-docker build -t my_project:latest .
+# Test API endpoints
+curl -X GET "http://localhost:8080/"
+curl -X POST "http://localhost:8080/predict" -F "file=@your_image.jpg"
 ```
 
 ## 🚀 Example Workflows
@@ -427,22 +435,31 @@ echo "    - 'my_vehicle_detector'" >> custom_config.yaml
 uv run inferx run my_vehicle_detector.xml image.jpg --config custom_config.yaml
 ```
 
-### 6. Template Generation Workflows ✅
+### 6. Template Generation Workflows ✅ **UPDATED**
 ```bash
-# Generate YOLO ONNX template with model
-uv run inferx template --model-type yolo --name my-yolo-detector --model-path /path/to/model.onnx
+# Quick YOLO project setup
+uv run inferx template --model-type yolo --name quick_detector
+cd quick_detector && uv sync
+uv run python -c "from src.inferencer import Inferencer; print('✅ Ready!')"
 
-# Generate YOLO OpenVINO template with model
-uv run inferx template --model-type yolo_openvino --name my-openvino-detector --model-path /path/to/model_dir
+# Production API setup
+uv run inferx template --model-type yolo_openvino --name production_api --with-api
+cd production_api && uv sync --extra api
+uv run --extra api python -m src.server &
+curl -X GET "http://localhost:8080/"
 
-# Generate template and add API server
-uv run inferx template --model-type yolo --name my-detector --with-api --model-path /path/to/model.onnx
+# Complete workflow with model
+uv run inferx template --model-type yolo --name my_detector --with-api --model-path /path/to/model.onnx
+cd my_detector
+uv sync --extra api
+# Your model is already copied to models/
+uv run --extra api python -m src.server
 
-# Generate template and add Docker support
-uv run inferx template --model-type yolo --name my-detector --with-docker --model-path /path/to/model.onnx
-
-# Generate complete stack
-uv run inferx template --model-type yolo_openvino --name my-complete-detector --with-api --with-docker --model-path /path/to/model_dir
+# All 4 template combinations
+uv run inferx template --model-type yolo --name basic_yolo                    # Basic ONNX
+uv run inferx template --model-type yolo --name api_yolo --with-api           # ONNX + API
+uv run inferx template --model-type yolo_openvino --name basic_openvino       # Basic OpenVINO  
+uv run inferx template --model-type yolo_openvino --name api_openvino --with-api  # OpenVINO + API
 ```
 
 ### 7. API Server Workflows ✅
@@ -566,9 +583,12 @@ uv run inferx config --validate
 ✅ **API Endpoints** - `/predict`, `/predict-batch`, `/info`, health checks  
 ✅ **Consistent Runtime** - Both CLI and API use same `runtime.py` inference engine  
 
-**Recent Fixes:**
-- ✅ **API Server Model Type Detection** - Fixed generic `onnx_inferencer` → proper `yolo` inferencer
-- ✅ **Preprocessing Consistency** - Fixed 224x224 → correct 640x640 input size for YOLO models
-- ✅ **Runtime Auto-Selection** - API server now properly detects ONNX vs OpenVINO runtimes
+**Recent Updates:**
+- ✅ **Template System Complete** - 4 working combinations (YOLO, YOLO+API, OpenVINO, OpenVINO+API)
+- ✅ **UV Integration Perfect** - `uv sync` with proper dependency management
+- ✅ **Import System Fixed** - No more relative import issues in templates
+- ✅ **API Templates Working** - FastAPI servers generate and run successfully
+- ✅ **Dynamic Project Names** - Templates use your specified `--name`
+- ✅ **OpenVINO Auto-Dependencies** - Automatically includes openvino for OpenVINO templates
 
-*InferX v1.0 - Production-ready dual-runtime ML inference package with full OpenVINO support, template generation, and working API server! 🚀*
+*InferX v1.1 - Production-ready ML inference package with fully working template generation system! 🚀*

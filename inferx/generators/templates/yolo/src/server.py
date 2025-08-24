@@ -13,7 +13,7 @@ import sys
 import os
 
 # Local imports
-from inferencer import Inferencer
+from src.inferencer import Inferencer
 
 # Initialize FastAPI app
 app = FastAPI(

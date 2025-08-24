@@ -484,15 +484,15 @@ version = "1.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
-    { name = "matplotlib" },
+    { name = "fastapi" },
     { name = "numpy" },
     { name = "onnxruntime" },
-    { name = "opencv-python" },
     { name = "opencv-python-headless" },
     { name = "openvino" },
     { name = "pydantic-settings" },
+    { name = "python-multipart" },
     { name = "pyyaml" },
-    { name = "ultralytics" },
+    { name = "uvicorn", extra = ["standard"] },
 ]
 
 [package.optional-dependencies]
@@ -506,10 +506,11 @@ dev = [
 gpu = [
     { name = "onnxruntime-gpu" },
 ]
-serve = [
-    { name = "fastapi" },
-    { name = "python-multipart" },
-    { name = "uvicorn", extra = ["standard"] },
+ultralytics = [
+    { name = "ultralytics" },
+]
+visualization = [
+    { name = "matplotlib" },
 ]
 
 [package.dev-dependencies]
@@ -525,25 +526,24 @@ dev = [
 requires-dist = [
     { name = "black", marker = "extra == 'dev'", specifier = ">=23.0.0" },
     { name = "click", specifier = ">=8.1.0" },
-    { name = "fastapi", marker = "extra == 'serve'", specifier = ">=0.104.0" },
-    { name = "matplotlib", specifier = ">=3.10.5" },
+    { name = "fastapi", specifier = ">=0.104.0" },
+    { name = "matplotlib", marker = "extra == 'visualization'", specifier = ">=3.10.5" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.0.0" },
     { name = "numpy", specifier = ">=1.24.0" },
     { name = "onnxruntime", specifier = ">=1.16.0" },
     { name = "onnxruntime-gpu", marker = "extra == 'gpu'", specifier = ">=1.16.0" },
-    { name = "opencv-python", specifier = ">=4.11.0.86" },
     { name = "opencv-python-headless", specifier = ">=4.8.0" },
     { name = "openvino", specifier = ">=2023.3.0" },
     { name = "pydantic-settings", specifier = ">=2.10.1" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.0.0" },
-    { name = "python-multipart", marker = "extra == 'serve'", specifier = ">=0.0.6" },
+    { name = "python-multipart", specifier = ">=0.0.6" },
     { name = "pyyaml", specifier = ">=6.0.1" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.1.0" },
-    { name = "ultralytics", specifier = ">=8.3.184" },
-    { name = "uvicorn", extras = ["standard"], marker = "extra == 'serve'", specifier = ">=0.24.0" },
+    { name = "ultralytics", marker = "extra == 'ultralytics'", specifier = ">=8.3.184" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.24.0" },
 ]
-provides-extras = ["gpu", "serve", "dev"]
+provides-extras = ["gpu", "visualization", "ultralytics", "dev"]
 
 [package.metadata.requires-dev]
 dev = [

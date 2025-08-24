@@ -104,3 +104,4 @@ dmypy.json
 .Trashes
 ehthumbs.db
 Thumbs.db
+scripts/onnx_and_openvino.py

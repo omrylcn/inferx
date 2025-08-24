@@ -1,8 +1,10 @@
 # InferX Usage Guide
 
-## 🚀 Current State: Production-Ready Package with CLI Interface
+## 🎯 Current State: Production-Ready Package with CLI Interface
 
 InferX is now **production-ready** as both a minimal dependency ML inference package and CLI tool! You can either import InferX directly in your Python code or use it from the command line. This guide covers all available features including the new OpenVINO integration and advanced configuration system.
+
+**Latest Update**: ✅ **Full OpenVINO Support** - YOLO models now work with both ONNX Runtime and OpenVINO Runtime, with automatic model type detection and optimized hardware acceleration for Intel devices.
 
 ## 📦 Installation
 
@@ -71,13 +73,13 @@ uv run inferx run model.onnx image.jpg
 
 ### ✅ **Dual Runtime Support:**
 - **ONNX Runtime inference** - Load and run any ONNX model (.onnx files)
-- **OpenVINO Runtime inference** - Load and run OpenVINO models (.xml/.bin files) 🆕
-- **Automatic runtime selection** - Chooses optimal runtime based on model format 🆕
+- **OpenVINO Runtime inference** - Load and run OpenVINO models (.xml/.bin files) with full YOLO support ✅
+- **Automatic runtime selection** - Chooses optimal runtime based on model format and hardware ✅
 
 ### ✅ **Model Support:**
-- **YOLO object detection** - Both ONNX and OpenVINO versions with optimizations 🆕
+- **YOLO object detection** - Both ONNX and OpenVINO versions with shared optimizations ✅
 - **Generic model inference** - Support for any ONNX or OpenVINO model
-- **Smart model detection** - Automatically detects model type from filename 🆕
+- **Smart model detection** - Automatically detects model type from filename and extension ✅
 
 ### ✅ **Processing Capabilities:**
 - **Single image processing** - Process individual images
@@ -86,17 +88,16 @@ uv run inferx run model.onnx image.jpg
 - **Multiple output formats** - JSON/YAML results export
 
 ### ✅ **Configuration & Performance:**
-- **Hierarchical configuration** - Global, project, and user-specified configs 🆕
-- **Performance presets** - Throughput, latency, and balanced optimization modes 🆕
-- **Device flexibility** - CPU, GPU, MYRIAD, HDDL, NPU support 🆕
-- **Intel optimizations** - Hardware-specific optimizations for Intel devices 🆕
-- **Memory management** - Model caching and memory pooling 🆕
+- **Hierarchical configuration** - Global, project, and user-specified configs ✅
+- **Performance presets** - Throughput, latency, and balanced optimization modes ✅
+- **Device flexibility** - CPU, GPU, MYRIAD, HDDL, NPU support with Intel optimizations ✅
+- **Memory management** - Model caching and memory pooling ✅
 
 ### ✅ **Developer Tools:**
-- **Configuration management** - Init, validate, and show config commands 🆕
+- **Configuration management** - Init, validate, and show config commands ✅
 - **Performance tracking** - Detailed timing information
 - **Verbose logging** - Debug and troubleshooting support
-- **Config validation** - Automatic validation with helpful warnings 🆕
+- **Config validation** - Automatic validation with helpful warnings ✅
 
 ## 🛠️ CLI Commands
 
@@ -126,7 +127,7 @@ inferx [OPTIONS] COMMAND [ARGS]...
 uv run inferx run model.onnx image.jpg
 ```
 
-**Basic OpenVINO usage (UV):** 🆕
+**Basic OpenVINO usage (UV):** ✅
 ```bash
 uv run inferx run model.xml image.jpg
 ```
@@ -136,7 +137,7 @@ uv run inferx run model.xml image.jpg
 # ONNX YOLO (auto-detected by filename)
 uv run inferx run yolov8n.onnx image.jpg
 
-# OpenVINO YOLO (auto-detected by filename and extension) 🆕
+# OpenVINO YOLO (auto-detected by filename and extension) ✅
 uv run inferx run yolov8n.xml image.jpg
 
 # Force specific runtime
@@ -144,7 +145,7 @@ uv run inferx run yolov8.onnx image.jpg --runtime openvino
 uv run inferx run yolov8.xml image.jpg --runtime onnx
 ```
 
-**Device selection:** 🆕
+**Device selection:** ✅
 ```bash
 # Auto-select best device
 uv run inferx run model.xml image.jpg --device auto
@@ -203,7 +204,7 @@ inferx run model.xml image.jpg
    Inference time: 0.032s
 ```
 
-**Example output (YOLO OpenVINO):** 🆕
+**Example output (YOLO OpenVINO):** ✅
 ```
 🚀 Starting inference...
    Model: yolov8n.xml
@@ -253,7 +254,7 @@ Processing images  [####################################]  100%
    Average: 0.034s per image
 ```
 
-### 3. Configuration Management 🆕
+### 3. Configuration Management ✅
 
 **Initialize user configuration:**
 ```bash
@@ -282,7 +283,7 @@ uv run inferx config --validate
 uv run inferx config --show
 ```
 
-**Example config.yaml:** 🆕
+**Example config.yaml:** ✅
 ```yaml
 # Model detection (add your custom patterns)
 model_detection:
@@ -336,7 +337,7 @@ uv run inferx run model.xml image.jpg --config myconfig.yaml --device gpu
 
 ## 🎛️ Available Options
 
-### Device Selection 🆕
+### Device Selection ✅
 ```bash
 # Automatic device selection (default)
 uv run inferx run model.xml image.jpg --device auto
@@ -357,7 +358,7 @@ uv run inferx run model.xml image.jpg --device hddl
 uv run inferx run model.xml image.jpg --device npu
 ```
 
-### Runtime Selection 🆕
+### Runtime Selection ✅
 ```bash
 # Automatic runtime selection (default)
 uv run inferx run model.xml image.jpg --runtime auto
@@ -559,11 +560,11 @@ session_options:
 # Test ONNX model quickly
 uv run inferx run my_model.onnx test_image.jpg --verbose
 
-# Test OpenVINO model quickly 🆕
+# Test OpenVINO model quickly ✅
 uv run inferx run my_model.xml test_image.jpg --verbose
 ```
 
-### 2. Performance Optimization 🆕
+### 2. Performance Optimization ✅
 ```bash
 # Compare ONNX vs OpenVINO performance
 uv run inferx run yolov8.onnx test_image.jpg --device cpu --verbose
@@ -575,7 +576,7 @@ uv run inferx run model.xml test_image.jpg --device gpu --verbose
 uv run inferx run model.xml test_image.jpg --device myriad --verbose
 ```
 
-### 3. Production Deployment Setup 🆕
+### 3. Production Deployment Setup ✅
 ```bash
 # Create production configuration
 uv run inferx config --template production_config.yaml
@@ -592,11 +593,11 @@ uv run inferx config --validate
 # Process validation dataset with ONNX
 uv run inferx run model.onnx validation_images/ --output validation_results.json
 
-# Process with OpenVINO for better performance 🆕
+# Process with OpenVINO for better performance ✅
 uv run inferx run model.xml validation_images/ --device gpu --output validation_results.json
 ```
 
-### 5. Custom Model Integration 🆕
+### 5. Custom Model Integration ✅
 ```bash
 # Add your model detection pattern
 echo "model_detection:" > custom_config.yaml
@@ -607,7 +608,7 @@ echo "    - 'my_vehicle_detector'" >> custom_config.yaml
 uv run inferx run my_vehicle_detector.xml image.jpg --config custom_config.yaml
 ```
 
-### 6. Template Generation Workflows 🆕
+### 6. Template Generation Workflows ✅
 ```bash
 # Generate YOLO ONNX template
 uv run inferx template yolo --name my-yolo-detector
@@ -622,7 +623,7 @@ uv run inferx template yolo --name my-detector --with-api
 uv run inferx template yolo --name my-detector --with-docker
 ```
 
-### 7. Development and Debugging 🆕
+### 7. Development and Debugging ✅
 ```bash
 # Enable debug logging
 uv run inferx run model.xml image.jpg --verbose
@@ -642,7 +643,7 @@ uv run inferx config --validate
 - **✅ Project templates**: `inferx template yolo --name my-detector`
 - **✅ OpenVINO templates**: `inferx template yolo_openvino --name my-detector`
 - **✅ FastAPI server**: `inferx api` (adds server.py to existing project)
-- **🚧 Docker generation**: `inferx docker model.xml --tag mymodel:v1 --runtime openvino`
+- **✅ Docker generation**: `inferx docker model.xml --tag mymodel:v1 --runtime openvino`
 - **Performance benchmarking**: Built-in benchmarking tools for optimization
 - **Advanced testing**: Comprehensive unit and integration test suite
 
@@ -661,15 +662,16 @@ uv run inferx config --validate
 
 ## 🌟 **Current Achievement Summary**
 
-✅ **Dual Runtime Support** - ONNX Runtime + OpenVINO Runtime  
-✅ **Smart Model Detection** - Automatic model type detection from filenames  
-✅ **Multi-Device Support** - CPU, GPU, MYRIAD, HDDL, NPU compatibility  
+✅ **Dual Runtime Support** - ONNX Runtime + OpenVINO Runtime with full YOLO support  
+✅ **Smart Model Detection** - Automatic model type detection from filenames and extensions  
+✅ **Multi-Device Support** - CPU, GPU, MYRIAD, HDDL, NPU compatibility with Intel optimizations  
 ✅ **Production Configuration** - Hierarchical config system with validation  
-✅ **Performance Optimization** - Intel hardware optimizations and presets  
+✅ **Performance Optimization** - Hardware-specific optimizations and presets  
 ✅ **Developer Tools** - Configuration management and debugging utilities  
 ✅ **Package Usage** - Import and use directly in Python code  
 ✅ **CLI Usage** - Run models directly from command line  
 ✅ **Template Generation** - Generate standalone projects with YOLO template  
 ✅ **API Generation** - Add FastAPI server to existing projects  
+✅ **Docker Generation** - Generate optimized Docker deployment  
 
-*InferX v1.0 - Production-ready dual-runtime ML inference package! 🚀*
+*InferX v1.0 - Production-ready dual-runtime ML inference package with full OpenVINO support! 🚀*

@@ -7,30 +7,29 @@ from pathlib import Path
 from typing import Dict, List, Any, Union, Optional, Tuple
 import logging
 
-from .base import BaseInferencer
+from .yolo_base import BaseYOLOInferencer
 from ..utils import ImageProcessor
 from ..exceptions import (
     ModelLoadError,
     InferenceFailedError,
     InputInvalidFormatError,
-    create_input_error,
     ErrorCode
 )
 
 logger = logging.getLogger(__name__)
 
 
-class YOLOInferencer(BaseInferencer):
-    """YOLO object detection inferencer"""
+class YOLOInferencer(BaseYOLOInferencer):
+    """YOLO object detection inferencer for ONNX models"""
     
     def __init__(self, model_path: Union[str, Path], config: Optional[Dict] = None):
-        """Initialize YOLO inferencer
+        """Initialize YOLO ONNX inferencer
         
         Args:
             model_path: Path to YOLO ONNX model file
             config: Optional configuration dictionary
         """
-        # Default YOLO config
+        # Ensure YOLO-specific config
         default_config = {
             "input_size": 640,
             "confidence_threshold": 0.25,
@@ -107,32 +106,6 @@ class YOLOInferencer(BaseInferencer):
                 }
             )
     
-    def _letterbox(self, img: np.ndarray, new_shape: Tuple[int, int] = (640, 640)) -> Tuple[np.ndarray, Tuple[float, float], Tuple[int, int]]:
-        """Letterbox resize image while maintaining aspect ratio
-        
-        Args:
-            img: Input image
-            new_shape: Target shape (height, width)
-            
-        Returns:
-            Tuple of (resized_image, scale_ratio, padding)
-        """
-        shape = img.shape[:2]  # current shape [height, width]
-        r = min(new_shape[0] / shape[0], new_shape[1] / shape[1])
-        new_unpad = int(round(shape[1] * r)), int(round(shape[0] * r))  # width, height
-        dw, dh = new_shape[1] - new_unpad[0], new_shape[0] - new_unpad[1]  # wh padding
-        dw /= 2  # divide padding into 2 sides
-        dh /= 2
-        
-        if shape[::-1] != new_unpad:  # resize
-            img = cv2.resize(img, new_unpad, interpolation=cv2.INTER_LINEAR)
-            
-        top, bottom = int(round(dh - 0.1)), int(round(dh + 0.1))
-        left, right = int(round(dw - 0.1)), int(round(dw + 0.1))
-        img = cv2.copyMakeBorder(img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=(114, 114, 114))
-        
-        return img, (r, r), (dw, dh)
-    
     def preprocess(self, input_data: Any) -> Tuple[np.ndarray, Tuple[float, float], Tuple[int, int]]:
         """YOLO preprocessing: letterbox resize + normalize + transpose
         
@@ -142,11 +115,13 @@ class YOLOInferencer(BaseInferencer):
         Returns:
             Tuple of (preprocessed_image, scale_ratio, padding)
         """
+        # Store original image dimensions for postprocessing
         if isinstance(input_data, (str, Path)):
-            # Load image from file
+            # Load image from file to get dimensions
             img = ImageProcessor.load_image(input_data)
+            self.img_height, self.img_width = img.shape[:2]
         elif isinstance(input_data, np.ndarray):
-            img = input_data
+            self.img_height, self.img_width = input_data.shape[:2]
         else:
             raise InputInvalidFormatError(
                 input_path=str(input_data) if hasattr(input_data, '__str__') else "unknown",
@@ -154,25 +129,8 @@ class YOLOInferencer(BaseInferencer):
                 context={"actual_type": type(input_data).__name__}
             )
         
-        # Store original image dimensions
-        self.img_height, self.img_width = img.shape[:2]
-        
-        # Convert BGR to RGB
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        
-        # Letterbox resize
-        img, ratio, pad = self._letterbox(img, (self.input_height, self.input_width))
-        
-        # Normalize to [0, 1]
-        img = np.array(img) / 255.0
-        
-        # Transpose HWC to CHW
-        img = np.transpose(img, (2, 0, 1))
-        
-        # Add batch dimension
-        img = np.expand_dims(img, axis=0).astype(np.float32)
-        
-        return img, ratio, pad
+        # Use the common preprocessing from base class
+        return self.common_preprocess(input_data)
     
     def _run_inference(self, preprocessed_data: np.ndarray) -> List[np.ndarray]:
         """Run YOLO model inference
@@ -246,39 +204,13 @@ class YOLOInferencer(BaseInferencer):
                 scores.append(max_score)
                 class_ids.append(class_id)
         
-        # Apply Non-Maximum Suppression using OpenCV
-        if len(boxes) > 0:
-            indices = cv2.dnn.NMSBoxes(
-                boxes, 
-                scores, 
-                self.config["confidence_threshold"], 
-                self.config["nms_threshold"]
-            )
-            
-            # Format final results
-            detections = []
-            if len(indices) > 0:
-                for i in indices:
-                    if isinstance(i, (list, np.ndarray)):
-                        i = i[0]
-                        
-                    box = boxes[i]
-                    score = scores[i]
-                    class_id = class_ids[i]
-                    
-                    detection = {
-                        "bbox": [float(x) for x in box],  # [x, y, width, height]
-                        "confidence": float(score),
-                        "class_id": int(class_id),
-                        "class_name": self.config["class_names"][class_id] if class_id < len(self.config["class_names"]) else f"class_{class_id}"
-                    }
-                    detections.append(detection)
-        else:
-            detections = []
+        # Use common postprocess
+        detections = self.common_postprocess(boxes, scores, class_ids, gain)
         
         return {
             "detections": detections,
             "num_detections": len(detections),
+            "num_outputs": len(detections),
             "model_type": "yolo"
         }
     
@@ -291,7 +223,24 @@ class YOLOInferencer(BaseInferencer):
         Returns:
             Dictionary containing detection results
         """
-        # Model check is handled by parent class predict() method
+        # Check if model is loaded properly
+        if self.session is None:
+            raise ModelError(
+                message="Model not loaded properly",
+                error_code=ErrorCode.MODEL_NOT_LOADED,
+                suggestions=[
+                    "Ensure model file exists and is valid",
+                    "Check model file permissions",
+                    "Verify runtime compatibility",
+                    "Try reloading the model"
+                ],
+                recovery_actions=[
+                    "Recreate the inferencer instance",
+                    "Use a different model file",
+                    "Check system resources"
+                ],
+                context={"model_path": str(self.model_path)}
+            )
         
         # Preprocess input
         preprocessed_data, ratio, pad = self.preprocess(input_data)

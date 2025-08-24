@@ -11,6 +11,7 @@ from typing import Optional, Dict, Any
 from . import __version__
 from .runtime import InferenceEngine
 from .utils import FileUtils
+from .settings import get_inferx_settings
 
 
 @click.group()

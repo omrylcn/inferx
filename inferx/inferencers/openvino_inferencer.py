@@ -12,6 +12,16 @@ from ..utils import ImageProcessor, preprocess_for_inference
 
 logger = logging.getLogger(__name__)
 
+# Device mapping for OpenVINO
+DEVICE_MAP = {
+    "auto": "AUTO",
+    "cpu": "CPU",
+    "gpu": "GPU",
+    "myriad": "MYRIAD",
+    "hddl": "HDDL",
+    "npu": "NPU"
+}
+
 
 class OpenVINOInferencer(BaseInferencer):
     """Generic OpenVINO Runtime inferencer for any OpenVINO model
@@ -87,14 +97,17 @@ class OpenVINOInferencer(BaseInferencer):
             # Setup device configuration
             device_config = self._setup_device_config()
             
-            # Compile model for target device
+            # Get device name from config and map it to OpenVINO device name
             device = self.config.get("device", "AUTO")
-            logger.info(f"Compiling model for device: {device}")
+            openvino_device = DEVICE_MAP.get(device.lower(), device.upper())
+            
+            # Compile model for target device
+            logger.info(f"Compiling model for device: {openvino_device}")
             logger.info(f"Device configuration: {device_config}")
             
             self.compiled_model = self.core.compile_model(
                 model=model,
-                device_name=device,
+                device_name=openvino_device,
                 config=device_config
             )
             
@@ -102,7 +115,7 @@ class OpenVINOInferencer(BaseInferencer):
             self._extract_model_metadata()
             
             logger.info(f"Loaded OpenVINO model: {self.model_path}")
-            logger.info(f"Device: {device}")
+            logger.info(f"Device: {openvino_device}")
             logger.info(f"Input shape: {self.input_shape}")
             logger.info(f"Output shape: {self.output_shape}")
             
@@ -114,14 +127,17 @@ class OpenVINOInferencer(BaseInferencer):
         """Setup device-specific configuration"""
         config = {}
         
+        # Get device name from config and map it to OpenVINO device name
+        device = self.config.get("device", "AUTO")
+        openvino_device = DEVICE_MAP.get(device.lower(), device.upper())
+        
         # Performance hint
         perf_hint = self.config.get("performance_hint", "THROUGHPUT")
         if perf_hint in ["THROUGHPUT", "LATENCY", "CUMULATIVE_THROUGHPUT"]:
             config["PERFORMANCE_HINT"] = perf_hint
         
         # Thread settings for CPU
-        device = self.config.get("device", "AUTO")
-        if device == "CPU" or device == "AUTO":
+        if openvino_device == "CPU":
             num_threads = self.config.get("num_threads", 0)
             if num_threads > 0:
                 config["CPU_THREADS_NUM"] = str(num_threads)
@@ -131,7 +147,7 @@ class OpenVINOInferencer(BaseInferencer):
                 config["CPU_THROUGHPUT_STREAMS"] = str(num_streams)
         
         # GPU settings
-        if device == "GPU" or device == "AUTO":
+        if openvino_device == "GPU":
             num_streams = self.config.get("num_streams", 0)
             if num_streams > 0:
                 config["GPU_THROUGHPUT_STREAMS"] = str(num_streams)

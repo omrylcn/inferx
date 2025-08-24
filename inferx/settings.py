@@ -276,7 +276,12 @@ class InferXSettings(BaseSettings):
     
     def get_device_name(self, device: str) -> str:
         """Map device name for compatibility"""
-        return self.device_mapping.get(device.lower(), device.upper())
+        # Try to get from flattened device mapping fields
+        device_key = f"device_{device.lower()}"
+        if hasattr(self, device_key):
+            return getattr(self, device_key)
+        # Fallback to uppercase
+        return device.upper()
     
     def detect_model_type(self, model_path: Path, runtime_hint: Optional[str] = None) -> str:
         """Detect model type from filename"""
@@ -286,7 +291,7 @@ class InferXSettings(BaseSettings):
         if any(keyword in filename for keyword in self.yolo_keywords):
             if model_path.suffix.lower() == ".xml":
                 return "yolo_openvino"
-            return "yolo"
+            return "yolo_onnx"
         
         # Check classification keywords
         if any(keyword in filename for keyword in self.classification_keywords):
@@ -299,8 +304,10 @@ class InferXSettings(BaseSettings):
         # Default based on file extension
         if model_path.suffix.lower() == ".xml":
             return "openvino"
-        else:
+        elif model_path.suffix.lower() == ".onnx":
             return "onnx"
+        else:
+            return "generic"
     
     # =========================================================================
     # CONFIGURATION

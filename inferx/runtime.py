@@ -75,8 +75,9 @@ class InferenceEngine:
             config.setdefault("preprocessing", {}).update(preprocessing_defaults)
         
         # Add runtime settings
+        mapped_device = self.global_config.get_device_name(self.device)
         config.update({
-            "device": self.global_config.get_device_name(self.device),
+            "device": mapped_device,
             "runtime": detected_runtime
         })
         

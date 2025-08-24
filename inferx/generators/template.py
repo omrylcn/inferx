@@ -32,11 +32,20 @@ class TemplateGenerator:
         if with_api:
             self._copy_api_files(project_path)
         
+        # Copy sample data if available
+        self._copy_sample_data(project_path)
+        
         # Update README with project-specific information
         self._update_readme(project_path, model_type, with_api, with_docker)
         
         print(f"✅ Created {model_type} template: {project_name}")
         print(f"✅ Generated {model_type} project: {project_name}")
+        if with_api:
+            print("   🌐 API server added")
+            print("   To run the server: uv run --extra api python -m src.server")
+            print("   API docs available at: http://localhost:8080/docs")
+        if with_docker:
+            print("   🐳 Docker container added")
         
         return project_path
     
@@ -267,27 +276,18 @@ class TemplateGenerator:
             print(f"DEBUG: Source file {source_file} not found")
     
     def _copy_api_files(self, project_path: Path):
-        """Copy API files from template directory"""
-        template_src = self.templates_dir / "yolo"
-        if not template_src.exists():
-            return
-            
+        """Copy FastAPI server files to project"""
+        src_path = project_path / "src"
+        
         # Copy server.py from template
-        src_file = template_src / "src" / "server.py"
-        if src_file.exists():
-            dst_file = project_path / "src" / "server.py"
-            # Create src directory if it doesn't exist
-            dst_file.parent.mkdir(exist_ok=True)
-            shutil.copy2(src_file, dst_file)
+        template_server = self.templates_dir / "yolo" / "src" / "server.py"
+        if template_server.exists():
+            dst_server = src_path / "server.py"
+            import shutil
+            shutil.copy2(template_server, dst_server)
             
             # Update pyproject.toml to include API dependencies
-            pyproject_file = project_path / "pyproject.toml"
-            if pyproject_file.exists():
-                content = pyproject_file.read_text()
-                # Add api extra if it doesn't exist
-                if "[project.optional-dependencies]" not in content:
-                    content += "\n[project.optional-dependencies]\napi = [\"fastapi>=0.104.0\", \"uvicorn[standard]>=0.24.0\", \"python-multipart>=0.0.6\"]\n"
-                    pyproject_file.write_text(content)
+            self._update_pyproject_for_api(project_path)
     
     def _copy_docker_files(self, project_path: Path):
         """Copy Docker files from template"""
@@ -345,18 +345,43 @@ class TemplateGenerator:
             return
         
         content = pyproject_file.read_text()
-        # Ensure API dependencies are included
+        # Add API extra if not exists
         if "[project.optional-dependencies]" not in content:
             content += '''
 [project.optional-dependencies]
-api = ["fastapi>=0.104.0", "uvicorn[standard]>=0.24.0", "python-multipart>=0.0.6"]
+api = [
+    "fastapi>=0.68.0",
+    "uvicorn>=0.15.0",
+]
 '''
-        elif "api = " not in content:
-            content = content.replace(
-                "[project.optional-dependencies]",
-                '''[project.optional-dependencies]
-api = ["fastapi>=0.104.0", "uvicorn[standard]>=0.24.0", "python-multipart>=0.0.6"]'''
-            )
+        elif "api = [" not in content:
+            # Find the end of optional-dependencies section and add api
+            lines = content.splitlines()
+            new_lines = []
+            in_optional = False
+            optional_ended = False
+            
+            for line in lines:
+                new_lines.append(line)
+                if line.strip() == "[project.optional-dependencies]":
+                    in_optional = True
+                elif in_optional and line.startswith("[") and line.strip() != "[project.optional-dependencies]":
+                    # Add api before next section
+                    new_lines.insert(-1, 'api = [')
+                    new_lines.insert(-1, '    "fastapi>=0.68.0",')
+                    new_lines.insert(-1, '    "uvicorn>=0.15.0",')
+                    new_lines.insert(-1, ']')
+                    in_optional = False
+                    optional_ended = True
+            
+            if in_optional and not optional_ended:
+                # Add at the end
+                new_lines.append('api = [')
+                new_lines.append('    "fastapi>=0.68.0",')
+                new_lines.append('    "uvicorn>=0.15.0",')
+                new_lines.append(']')
+            
+            content = "\n".join(new_lines)
         
         pyproject_file.write_text(content)
     
@@ -378,6 +403,19 @@ api = ["fastapi>=0.104.0", "uvicorn[standard]>=0.24.0", "python-multipart>=0.0.6
         except Exception as e:
             print(f"⚠️ Configuration validation warning: {e}")
             print("   Template created but config may need adjustment")
+    
+    def _copy_sample_data(self, project_path: Path):
+        """Copy sample data files from data directory"""
+        data_src = self.inferx_root / "data"
+        data_dst = project_path / "data"
+        
+        if data_src.exists():
+            data_dst.mkdir(exist_ok=True)
+            # Copy sample images
+            for item in data_src.iterdir():
+                if item.is_file() and item.suffix.lower() in ['.jpg', '.jpeg', '.png']:
+                    dst_file = data_dst / item.name
+                    shutil.copy2(item, dst_file)
     
     def _update_readme(self, project_path: Path, model_type: str, with_api: bool, with_docker: bool):
         """Update README.md with project-specific information"""
@@ -440,3 +478,31 @@ api = ["fastapi>=0.104.0", "uvicorn[standard]>=0.24.0", "python-multipart>=0.0.6
             # For ONNX and other models
             dst_file = models_dir / f"yolo_model{model_src.suffix}"
             shutil.copy2(model_src, dst_file)
+    
+    def add_api_layer(self, project_path: str):
+        """Add FastAPI server layer to existing project"""
+        project_path = Path(project_path).resolve()
+        
+        # Copy server.py from template
+        self._copy_api_files(project_path)
+        
+        # Update pyproject.toml to include API dependencies
+        self._update_pyproject_for_api(project_path)
+        
+        print("✅ Added FastAPI server to project")
+        print("   To run the server: uv run --extra api python -m src.server")
+        print("   API docs available at: http://localhost:8080/docs")
+    
+    def _copy_api_files(self, project_path: Path):
+        """Copy FastAPI server files to project"""
+        src_path = project_path / "src"
+        
+        # Copy server.py from template
+        template_server = self.templates_dir / "yolo" / "src" / "server.py"
+        if template_server.exists():
+            dst_server = src_path / "server.py"
+            import shutil
+            shutil.copy2(template_server, dst_server)
+            
+            # Update pyproject.toml to include API dependencies
+            self._update_pyproject_for_api(project_path)

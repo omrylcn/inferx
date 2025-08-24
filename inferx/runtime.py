@@ -118,6 +118,12 @@ class InferenceEngine:
                 return YOLOInferencer(self.model_path, self.config)
             elif self.model_type == "yolo_openvino":
                 return YOLOOpenVINOInferencer(self.model_path, self.config)
+            elif self.model_type == "yolo":
+                # Auto-detect YOLO runtime based on file extension
+                if self._detect_runtime() == "openvino":
+                    return YOLOOpenVINOInferencer(self.model_path, self.config)
+                else:
+                    return YOLOInferencer(self.model_path, self.config)
             elif self.model_type == "openvino":
                 return OpenVINOInferencer(self.model_path, self.config)
             elif self.model_type == "onnx" or self._detect_runtime() == "onnx":

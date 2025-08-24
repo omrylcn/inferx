@@ -225,56 +225,8 @@ def run(ctx: click.Context, model_path: Path, input_path: Path,
         return
 
 
-@cli.command()
-def api() -> None:
-    """Add FastAPI server to existing project"""
-    try:
-        # Lazy import to avoid dependency issues
-        from .generators.template import TemplateGenerator
-        
-        generator = TemplateGenerator()
-        generator.add_api_layer(".")
-        click.echo("✅ Added FastAPI server to current project")
-        click.echo("   To run the server: uv run python -m src.server")
-        click.echo("   API docs available at: http://localhost:8080/docs")
-    except ImportError as e:
-        click.echo(f"❌ Failed to import template generator: {e}", err=True)
-        click.echo("Make sure all dependencies are installed", err=True)
-    except Exception as e:
-        click.echo(f"❌ Failed to add API server: {e}", err=True)
 
-
-@cli.command()
 @click.option("--tag", default="inferx:latest", help="Docker image tag")
-@click.option("--optimize", is_flag=True, help="Optimize Docker image size")
-@click.option("--compose", is_flag=True, help="Generate docker-compose.yml")
-def docker(tag: str, optimize: bool, compose: bool) -> None:
-    """Generate Docker container for current project"""
-    click.echo(f"Generating Docker container with tag: {tag}")
-    
-    if optimize:
-        click.echo("Optimizing for minimal image size")
-    
-    if compose:
-        click.echo("Generating docker-compose.yml")
-    
-    try:
-        # Lazy import to avoid dependency issues
-        from .generators.template import TemplateGenerator
-        
-        generator = TemplateGenerator()
-        generator.add_docker_layer(".", tag=tag, optimize=optimize, compose=compose)
-        click.echo("✅ Added Docker container to current project")
-        click.echo("   To build: docker build -t {tag} .")
-        click.echo("   To run: docker run -p 8080:8080 {tag}")
-    except ImportError as e:
-        click.echo(f"❌ Failed to import template generator: {e}", err=True)
-        click.echo("Make sure all dependencies are installed", err=True)
-    except Exception as e:
-        click.echo(f"❌ Failed to add Docker container: {e}", err=True)
-
-
-@cli.command()
 @click.option("--template", type=click.Choice(["yolo", "anomalib", "classification"]),
               default="yolo", help="Project template to use")
 @click.option("--global", "global_config", is_flag=True, help="Initialize global user config")
@@ -296,8 +248,8 @@ def init(ctx: click.Context, template: str, global_config: bool) -> None:
 @click.option("--name", required=True, help="Project name")
 @click.option("--device", type=click.Choice(["cpu", "gpu", "auto"]), default="auto", help="Device to run inference on")
 @click.option("--runtime", type=click.Choice(["onnx", "openvino", "auto"]), default="auto", help="Runtime engine to use")
-@click.option("--with-api", is_flag=True, help="Add FastAPI server to template")
-@click.option("--with-docker", is_flag=True, help="Add Docker container to template")
+@click.option("--with-api", "with_api", is_flag=True, help="Add FastAPI server to template")
+@click.option("--with-docker", "with_docker", is_flag=True, help="Add Docker container to template")
 @click.option("--config-path", type=click.Path(exists=True), help="Custom configuration file path")
 @click.option("--model-path", type=click.Path(exists=True), help="Path to model file to copy into template")
 def template(model_type: str, name: str, device: str, runtime: str, with_api: bool, with_docker: bool, config_path: Optional[str], model_path: Optional[str]) -> None:
@@ -378,6 +330,25 @@ def config_cmd(ctx: click.Context, show: bool, validate: bool, init: bool, templ
             "log_level": config.log_level.value
         }
         click.echo(json.dumps(settings_dict, indent=2))
+
+
+@cli.command()
+@click.option("--config", type=click.Path(exists=True), help="Configuration file path")
+@click.option("--model-path", type=click.Path(exists=True), help="Model file path")
+@click.option("--model-type", type=click.Choice(["yolo", "yolo_openvino", "onnx_generic"]), help="Model type")
+@click.option("--host", default="0.0.0.0", help="Host to bind")
+@click.option("--port", default=8080, help="Port to bind")
+def serve(config: Optional[str], model_path: Optional[str], model_type: Optional[str], host: str, port: int) -> None:
+    """Start FastAPI server for inference"""
+    try:
+        # Import here to avoid dependency issues
+        from inferx.api.server import start_server
+        start_server(config, model_path, model_type, host, port)
+    except ImportError as e:
+        click.echo(f"❌ Failed to import server module: {e}", err=True)
+        click.echo("Make sure all dependencies are installed", err=True)
+    except Exception as e:
+        click.echo(f"❌ Failed to start server: {e}", err=True)
 
 
 def main() -> None:

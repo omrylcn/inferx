@@ -1,4 +1,4 @@
-"""FastAPI server for InferX YOLO inference"""
+"""FastAPI server for InferX YOLO inference (Template version)"""
 
 import uvicorn
 from fastapi import FastAPI, UploadFile, File, HTTPException
@@ -9,9 +9,14 @@ from pathlib import Path
 import tempfile
 import yaml
 import json
+import sys
+import os
+
+# Add parent directory to path for imports when run as module
+sys.path.insert(0, str(Path(__file__).parent))
 
 # Local imports
-from inferencer import Inferencer
+from .inferencer import Inferencer
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -127,5 +132,11 @@ async def predict_batch(files: list[UploadFile] = File(...)):
         "total_failed": len(failed_files)
     }
 
+def start_server():
+    """Start the FastAPI server"""
+    uvicorn.run("src.server:app", host="0.0.0.0", port=8080, reload=False)
+
 if __name__ == "__main__":
+    # Add parent directory to path to make imports work when run as module
+    sys.path.insert(0, str(Path(__file__).parent.parent))
     uvicorn.run(app, host="0.0.0.0", port=8080)

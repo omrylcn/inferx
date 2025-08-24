@@ -1,0 +1,100 @@
+# Example InferX Configuration with Pydantic Settings
+# This shows how to customize InferX for your specific use case
+# Compatible with the new settings.py system
+
+# ================================================================
+# CUSTOM MODEL DETECTION
+# ================================================================
+# Add your custom model naming patterns
+model_detection:
+  yolo_keywords:
+    - "yolo"
+    - "yolov8"
+    - "yolov11" 
+    - "my_custom_yolo"        # Add your custom model names
+    - "vehicle_detector"      # Example: vehicle detection model
+  
+  # Add custom classification model patterns
+  classification_keywords:
+    - "resnet"
+    - "efficientnet"
+    - "my_classifier"         # Your custom classifier
+    - "emotion_detector"      # Example: emotion classification
+
+# ================================================================
+# DEVICE AND PERFORMANCE PREFERENCES
+# ================================================================
+# Customize device preferences for your hardware
+device_mapping:
+  auto: "GPU"                 # Prefer GPU when auto is selected
+  my_device: "MYRIAD"        # Map custom device name to Myriad VPU
+
+# Runtime preferences (simplified for settings.py)
+runtime_preferences:
+  onnx:
+    providers:
+      gpu: ["CUDAExecutionProvider", "OpenVINOExecutionProvider", "CPUExecutionProvider"]
+      cpu: ["CPUExecutionProvider"]
+    session_options:
+      graph_optimization_level: "ORT_ENABLE_ALL"
+      inter_op_num_threads: 8
+      intra_op_num_threads: 0
+
+# ================================================================
+# CUSTOM MODEL SETTINGS
+# ================================================================
+model_defaults:
+  # Custom YOLO settings for higher accuracy
+  yolo:
+    input_size: 1024           # Use higher resolution
+    confidence_threshold: 0.3  # Lower threshold for more detections
+    nms_threshold: 0.4         # Slightly lower NMS threshold
+    
+    # Custom class names for your specific model
+    class_names:
+      - "person"
+      - "vehicle"
+      - "bicycle"
+      - "traffic_sign"
+      - "traffic_light"
+  
+  # Custom classification settings
+  classification:
+    input_size: [384, 384]     # Higher resolution for better accuracy
+    top_k: 3                   # Return top 3 predictions
+    
+    # Custom normalization for your model
+    normalize:
+      mean: [0.5, 0.5, 0.5]    # Different normalization
+      std: [0.5, 0.5, 0.5]
+
+# ================================================================
+# LOGGING AND DEBUG SETTINGS
+# ================================================================
+logging:
+  level: "INFO"               # Set to DEBUG for detailed logs
+  categories:
+    model_loading: true
+    inference_timing: true
+    preprocessing: false       # Enable for debugging preprocessing
+    postprocessing: false      # Enable for debugging postprocessing
+    device_info: true
+
+# ================================================================
+# PREPROCESSING DEFAULTS
+# ================================================================
+preprocessing_defaults:
+  onnx:
+    target_size: [640, 640]
+    normalize: true
+    color_format: "RGB"
+    maintain_aspect_ratio: true
+    mean: [0.485, 0.456, 0.406]
+    std: [0.229, 0.224, 0.225]
+
+# ================================================================
+# SUPPORTED FORMATS
+# ================================================================
+supported_formats:
+  onnx: [".onnx"]
+  openvino: [".xml"]

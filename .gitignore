@@ -105,3 +105,8 @@ dmypy.json
 ehthumbs.db
 Thumbs.db
 scripts/onnx_and_openvino.py
+.claude/settings.local.json
+models/yolo11n_openvino/metadata.yaml
+models/yolo11n_openvino/yolo11n.bin
+models/yolo11n_openvino/yolo11n.xml
+models/yolo11n_onnx/yolo11n.onnx

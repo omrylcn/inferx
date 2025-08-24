@@ -309,34 +309,33 @@ def template(model_type: str, name: str, device: str, runtime: str, with_api: bo
         generator = TemplateGenerator()
         
         # Generate base template
-        generator.generate(
+        project_path = generator.create_template(
             model_type, 
             name, 
-            device=device, 
-            runtime=runtime,
-            config_path=config_path,
-            model_path=model_path
+            with_api=with_api, 
+            with_docker=with_docker
         )
         
-        # Add API layer if requested
-        if with_api:
-            generator.add_api_layer(name)
-        
-        # Add Docker layer if requested
-        if with_docker:
-            generator.add_docker_layer(name)
+        # Copy model file if provided
+        if model_path:
+            generator.copy_model_to_template(model_path, project_path, model_type)
         
         click.echo(f"✅ Generated {model_type} project: {name}")
         if with_api:
             click.echo("   🌐 API server added")
         if with_docker:
             click.echo("   🐳 Docker container added")
+        if model_path:
+            click.echo(f"   📦 Model copied from: {model_path}")
             
     except ImportError as e:
         click.echo(f"❌ Failed to import template generator: {e}", err=True)
         click.echo("Make sure all dependencies are installed", err=True)
     except Exception as e:
         click.echo(f"❌ Template generation failed: {e}", err=True)
+        if "--verbose" in str(e) or "-v" in str(e):
+            import traceback
+            traceback.print_exc()
 
 
 @cli.command("config")

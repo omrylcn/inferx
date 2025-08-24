@@ -114,7 +114,8 @@ inferx [OPTIONS] COMMAND [ARGS]...
 ### Available Commands
 - `run` - Run inference on models
 - `config` - Configuration management 🆕
-- `serve` - Start API server (template generation feature)
+- `template` - Generate inference project templates 🆕
+- `api` - Add FastAPI server to existing project 🆕
 - `docker` - Generate Docker containers (template generation feature)
 - `init` - Initialize projects or configs 🆕
 
@@ -254,304 +255,101 @@ Processing images  [####################################]  100%
    Average: 0.034s per image
 ```
 
-### 3. Configuration Management ✅
+## 🎨 Template Generation ✅
 
-**Initialize user configuration:**
+**Generate project templates with optional layers:**
+
+### Basic Template Generation
 ```bash
-# Create global user config at ~/.inferx/config.yaml
-uv run inferx config --init
+# Generate YOLO ONNX template
+uv run inferx template --model-type yolo --name my_yolo_project
 
-# Or use init command
-uv run inferx init --global
+# Generate YOLO OpenVINO template  
+uv run inferx template --model-type yolo_openvino --name my_openvino_project
 ```
 
-**Create project configuration:**
+### Template with Model Files
 ```bash
-# Create config template
-uv run inferx config --template my_config.yaml
+# Generate YOLO ONNX template with model file
+uv run inferx template --model-type yolo --name my_yolo_project --model-path /path/to/yolo_model.onnx
 
-# Copy to project directory
-cp my_config.yaml inferx_config.yaml
+# Generate YOLO OpenVINO template with model directory
+uv run inferx template --model-type yolo_openvino --name my_openvino_project --model-path /path/to/openvino_model_dir
 ```
 
-**Configuration validation and inspection:**
+### Template with API Layer
 ```bash
-# Validate current configuration
-uv run inferx config --validate
+# Add FastAPI server to template
+uv run inferx template --model-type yolo --name my_api_project --with-api
 
-# Show active configuration
-uv run inferx config --show
+# With model file
+uv run inferx template --model-type yolo --name my_api_project --with-api --model-path /path/to/model.onnx
 ```
 
-**Example config.yaml:** ✅
-```yaml
-# Model detection (add your custom patterns)
-model_detection:
-  yolo_keywords:
-    - "yolo"
-    - "yolov8" 
-    - "my_custom_yolo"
-
-# Device preferences
-device_mapping:
-  auto: "GPU"  # Prefer GPU when auto is selected
-
-# Performance optimization
-performance_presets:
-  production:
-    openvino:
-      performance_hint: "THROUGHPUT"
-      num_streams: 0  # Auto-optimize
-    onnx:
-      providers: ["CUDAExecutionProvider"]
-
-# Model-specific settings
-model_defaults:
-  yolo:
-    confidence_threshold: 0.3    # Lower threshold
-    input_size: 1024            # Higher resolution
-    class_names:                # Custom classes
-      - "person"
-      - "vehicle"
-      - "my_custom_class"
-
-# Preprocessing pipeline
-preprocessing_defaults:
-  openvino:
-    target_size: [640, 640]
-    normalize: true
-    color_format: "RGB"
-```
-
-**Use configuration:**
+### Template with Docker Layer
 ```bash
-# Use project local config (auto-loaded from ./inferx_config.yaml)
-uv run inferx run model.xml image.jpg
+# Add Docker container to template
+uv run inferx template --model-type yolo --name my_docker_project --with-docker
 
-# Use specific config file
-uv run inferx run model.xml image.jpg --config production.yaml
-
-# Override with CLI arguments
-uv run inferx run model.xml image.jpg --config myconfig.yaml --device gpu
+# With model file
+uv run inferx template --model-type yolo --name my_docker_project --with-docker --model-path /path/to/model.onnx
 ```
 
-## 🎛️ Available Options
-
-### Device Selection ✅
+### Full-Stack Template
 ```bash
-# Automatic device selection (default)
-uv run inferx run model.xml image.jpg --device auto
-
-# CPU inference (Intel optimization)
-uv run inferx run model.xml image.jpg --device cpu
-
-# GPU inference (Intel iGPU or NVIDIA)
-uv run inferx run model.xml image.jpg --device gpu
-
-# Intel VPU (Myriad stick)
-uv run inferx run model.xml image.jpg --device myriad
-
-# Intel HDDL (High Density Deep Learning)
-uv run inferx run model.xml image.jpg --device hddl
-
-# Neural Processing Unit
-uv run inferx run model.xml image.jpg --device npu
+# Generate complete template with API and Docker
+uv run inferx template --model-type yolo --name my_complete_project --with-api --with-docker --model-path /path/to/model.onnx
 ```
 
-### Runtime Selection ✅
+### Template Project Structure
+```
+my_project/
+├── src/
+│   ├── __init__.py
+│   ├── inferencer.py     # Model-specific inferencer
+│   ├── base.py          # Base inferencer class
+│   ├── yolo_base.py     # YOLO base functionality
+│   ├── utils.py         # Helper functions
+│   ├── exceptions.py    # Custom exceptions
+│   └── server.py        # FastAPI server (if --with-api)
+├── models/
+│   ├── yolo_model.onnx  # Model file (if --model-path provided)
+│   └── yolo_model.xml   # OpenVINO model (if --model-path provided)
+├── data/
+│   └── test_image.jpg   # Sample test image
+├── config.yaml          # Configuration file
+├── pyproject.toml       # Package dependencies
+├── Dockerfile           # Docker configuration (if --with-docker)
+├── docker-compose.yml   # Docker Compose (if --with-docker)
+├── README.md            # Project documentation
+└── .gitignore           # Git ignore patterns
+```
+
+### Using Generated Templates
 ```bash
-# Automatic runtime selection (default)
-uv run inferx run model.xml image.jpg --runtime auto
+# Navigate to generated project
+cd my_project
 
-# Force ONNX Runtime
-uv run inferx run model.xml image.jpg --runtime onnx
+# Install dependencies
+uv pip install -e .
 
-# Force OpenVINO Runtime
-uv run inferx run model.onnx image.jpg --runtime openvino
+# Test inferencer
+uv run python -c "from src.inferencer import Inferencer; print('✅ Inferencer loaded successfully')"
 
-# Cross-format inference (ONNX model on OpenVINO)
-uv run inferx run yolov8.onnx image.jpg --runtime openvino
+# Run inference on test image
+uv run python -c "
+from src.inferencer import Inferencer
+inferencer = Inferencer('models/yolo_model.onnx')
+result = inferencer.predict('data/test_image.jpg')
+print(f'Detected {result[\"num_detections\"]} objects')
+"
+
+# Run API server (if --with-api)
+uv run --extra api python -m src.server
+
+# Build Docker image (if --with-docker)
+docker build -t my_project:latest .
 ```
-
-### Output Formats (UV)
-```bash
-# JSON output (default)
-uv run inferx run model.onnx image.jpg --output results.json --format json
-
-# YAML output
-uv run inferx run model.onnx image.jpg --output results.yaml --format yaml
-```
-
-### Verbose Mode (UV)
-```bash
-# Enable detailed logging
-uv run inferx run model.onnx image.jpg --verbose
-
-# See full results in terminal
-uv run inferx run model.onnx image.jpg -v
-```
-
-## 📄 Output Format
-
-### Single Image Results (Generic ONNX)
-```json
-{
-  "raw_outputs": [...],
-  "output_shapes": [[1, 1000]],
-  "num_outputs": 1,
-  "model_type": "onnx_generic",
-  "output_0_shape": [1, 1000],
-  "output_0_dtype": "float32",
-  "output_0_min": -4.2,
-  "output_0_max": 8.1,
-  "output_0_mean": 0.05,
-  "timing": {
-    "model_load_time": 0.245,
-    "inference_time": 0.032,
-    "total_time": 0.277
-  }
-}
-```
-
-### Single Image Results (YOLO)
-```json
-{
-  "detections": [
-    {
-      "bbox": [100.5, 150.2, 200.0, 300.0],
-      "confidence": 0.95,
-      "class_id": 0,
-      "class_name": "person"
-    },
-    {
-      "bbox": [300.1, 200.5, 150.0, 250.0],
-      "confidence": 0.87,
-      "class_id": 1,
-      "class_name": "bicycle"
-    }
-  ],
-  "num_detections": 2,
-  "model_type": "yolo",
-  "timing": {
-    "model_load_time": 0.245,
-    "inference_time": 0.032,
-    "total_time": 0.277
-  }
-}
-```
-
-### Batch Processing Results
-```json
-{
-  "batch_summary": {
-    "total_images": 25,
-    "successful": 25,
-    "failed": 0,
-    "total_inference_time": 0.850,
-    "average_inference_time": 0.034,
-    "model_load_time": 0.245
-  },
-  "results": [
-    {
-      "file_path": "/path/to/image1.jpg",
-      "inference_time": 0.032,
-      "raw_outputs": [...],
-      "model_type": "onnx_generic"
-    },
-    ...
-  ]
-}
-```
-
-## 🔧 Troubleshooting
-
-### Common Issues
-
-**1. Model loading fails:**
-```bash
-❌ Failed to load ONNX model: No such file or directory
-```
-- Check if model file exists and path is correct
-- Ensure model is in ONNX format (.onnx extension)
-
-**2. Image loading fails:**
-```bash
-❌ Could not load image: /path/to/image.jpg
-```
-- Verify image file exists and is readable
-- Supported formats: .jpg, .jpeg, .png, .bmp, .tiff, .webp
-
-**3. GPU not available:**
-```bash
-GPU requested but no GPU providers available, falling back to CPU
-```
-- Install ONNX Runtime GPU: `pip install onnxruntime-gpu`
-- Check CUDA installation and compatibility
-
-### Debug Mode
-
-**Enable verbose logging (UV):**
-```bash
-uv run inferx run model.onnx image.jpg --verbose
-```
-
-**Alternative (pip install):**
-```bash
-inferx run model.onnx image.jpg --verbose
-```
-
-This will show:
-- Detailed model loading information
-- Provider selection process
-- Input/output shapes and types
-- Full error stack traces
-- Complete results JSON
-
-## 📊 Performance Tips
-
-### 1. Device Optimization (UV)
-```bash
-# Use GPU for better performance (if available)
-uv run inferx run model.onnx image.jpg --device gpu
-
-# Use CPU with specific configuration
-uv run inferx run model.onnx image.jpg --device cpu --config cpu_optimized.yaml
-```
-
-### 2. Batch Processing (UV)
-```bash
-# Process multiple images efficiently
-uv run inferx run model.onnx photos/ --batch-size 8
-```
-
-### 3. Configuration Tuning
-```yaml
-# config.yaml - Performance optimized
-runtime:
-  device: "gpu"
-  
-session_options:
-  graph_optimization_level: "ORT_ENABLE_ALL"
-  inter_op_num_threads: 4
-  intra_op_num_threads: 4
-```
-
-## 🔄 Model Requirements
-
-### Supported Model Formats
-- **ONNX models** (.onnx files)
-- Any model exported from PyTorch, TensorFlow, etc.
-
-### Input Requirements  
-- **Image inputs**: Any standard image format
-- **Preprocessing**: Automatic resizing, normalization, color format conversion
-- **Batch dimension**: Automatically added if needed
-
-### Output Processing
-- **Raw outputs**: Numerical arrays from model
-- **Basic statistics**: Min, max, mean values
-- **Shape information**: Input/output tensor shapes
-- **Timing data**: Performance metrics
 
 ## 🚀 Example Workflows
 
@@ -578,14 +376,24 @@ uv run inferx run model.xml test_image.jpg --device myriad --verbose
 
 ### 3. Production Deployment Setup ✅
 ```bash
-# Create production configuration
-uv run inferx config --template production_config.yaml
+# Generate production-ready template with model
+uv run inferx template --model-type yolo_openvino --name production_detector --model-path /path/to/model.xml --with-api --with-docker
 
-# Edit config for your use case, then test
-uv run inferx run model.xml images/ --config production_config.yaml
+# Navigate to project
+cd production_detector
 
-# Validate configuration
-uv run inferx config --validate
+# Install dependencies
+uv pip install -e .
+
+# Test inferencer
+uv run python -c "from src.inferencer import Inferencer; print('✅ Production detector ready')"
+
+# Run API server
+uv run --extra api python -m src.server
+
+# Build and run Docker container
+docker build -t detector:latest .
+docker run -p 8080:8080 detector:latest
 ```
 
 ### 4. Batch Evaluation
@@ -610,17 +418,20 @@ uv run inferx run my_vehicle_detector.xml image.jpg --config custom_config.yaml
 
 ### 6. Template Generation Workflows ✅
 ```bash
-# Generate YOLO ONNX template
-uv run inferx template yolo --name my-yolo-detector
+# Generate YOLO ONNX template with model
+uv run inferx template --model-type yolo --name my-yolo-detector --model-path /path/to/model.onnx
 
-# Generate YOLO OpenVINO template with model copy
-uv run inferx template yolo_openvino --name my-openvino-detector --model-path /path/to/model.xml
+# Generate YOLO OpenVINO template with model
+uv run inferx template --model-type yolo_openvino --name my-openvino-detector --model-path /path/to/model_dir
 
 # Generate template and add API server
-uv run inferx template yolo --name my-detector --with-api
+uv run inferx template --model-type yolo --name my-detector --with-api --model-path /path/to/model.onnx
 
 # Generate template and add Docker support
-uv run inferx template yolo --name my-detector --with-docker
+uv run inferx template --model-type yolo --name my-detector --with-docker --model-path /path/to/model.onnx
+
+# Generate complete stack
+uv run inferx template --model-type yolo_openvino --name my-complete-detector --with-api --with-docker --model-path /path/to/model_dir
 ```
 
 ### 7. Development and Debugging ✅
@@ -639,11 +450,13 @@ uv run inferx config --validate
 
 ## 🎯 What's Coming Next
 
-**Template Generation Features (Partially Completed):**
-- **✅ Project templates**: `inferx template yolo --name my-detector`
-- **✅ OpenVINO templates**: `inferx template yolo_openvino --name my-detector`
-- **✅ FastAPI server**: `inferx api` (adds server.py to existing project)
-- **✅ Docker generation**: `inferx docker model.xml --tag mymodel:v1 --runtime openvino`
+**Template Generation Features (Completed):**
+- **✅ Project templates**: `inferx template --model-type yolo --name my-detector`
+- **✅ OpenVINO templates**: `inferx template --model-type yolo_openvino --name my-detector`
+- **✅ FastAPI server**: `inferx template --model-type yolo --name my-detector --with-api`
+- **✅ Docker generation**: `inferx template --model-type yolo --name my-detector --with-docker`
+- **✅ Full stack templates**: `inferx template --model-type yolo --name my-detector --with-api --with-docker`
+- **✅ Model file copying**: `inferx template --model-type yolo --name my-detector --model-path /path/to/model.onnx`
 - **Performance benchmarking**: Built-in benchmarking tools for optimization
 - **Advanced testing**: Comprehensive unit and integration test suite
 
@@ -674,4 +487,4 @@ uv run inferx config --validate
 ✅ **API Generation** - Add FastAPI server to existing projects  
 ✅ **Docker Generation** - Generate optimized Docker deployment  
 
-*InferX v1.0 - Production-ready dual-runtime ML inference package with full OpenVINO support! 🚀*
+*InferX v1.0 - Production-ready dual-runtime ML inference package with full OpenVINO support and template generation! 🚀*
